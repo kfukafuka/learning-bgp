@@ -1,2 +1,1 @@
-# learning-bgp
-BGP no
+# BGP勉強のためのRepository
