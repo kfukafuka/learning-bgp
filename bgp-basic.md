@@ -1,6 +1,6 @@
 # 概要
-ルーティングプロトコルであるBGP(Border Gateway Protocol)に関して調べたことや  
-試してみたことなどが記載されている
+ルーティングプロトコルであるBGP(Border Gateway Protocol)に関して調べたことを記載している
+
 # ルーティングに関する簡単なおさらい
 ## [IGPとEGP]
 * IGP(Interior Gateway Protocol)
