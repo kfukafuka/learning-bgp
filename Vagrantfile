@@ -1,0 +1,74 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# All Vagrant configuration is done below. The "2" in Vagrant.configure
+# configures the configuration version (we support older styles for
+# backwards compatibility). Please don't change it unless you know what
+# you're doing.
+
+require 'yaml'
+
+Vagrant.configure("2") do |config|
+  properties = YAML.load_file("properties.yml")
+
+#  config.vm.box = "CumulusCommunity/cumulus-vx"
+  config.vm.box = "cumulus-vx-3.2.1"
+
+  # Number of nodes to provision
+  iter = 1
+  
+  # Spine configuration
+  1.upto(properties[:numSpines]) do |num|
+    nodeName = ("s" + num.to_s).to_sym
+    devName = ("s" + num.to_s)
+    peerAsn = Hash.new
+    config.vm.define nodeName do |node|
+      node.vm.host_name = devName
+      1.upto(properties[:numLeaves]) do |leaf|
+        leafname = ("l" + leaf.to_s)
+        ifname = ("swp" + leaf.to_s)
+        node.vm.network "private_network",
+                        virtualbox__intnet: devName + "-" + leafname
+        peerAsn[ifname] = properties[:leafAsnBase] + leaf
+      end
+
+      node.vm.provision "ansible" do |ansible|
+        ansible.extra_vars = {
+          loopback_ip: properties[:ipAddrPrefix] + iter.to_s,
+          asn: properties[:spineAsn],
+          peer_asn: peerAsn,
+        }
+        ansible.playbook = "clbgp.yml"
+      end
+
+      iter += 1
+    end
+  end
+
+  # Leaf configuration
+  1.upto(properties[:numLeaves]) do |num|
+    nodeName = ("l" + num.to_s).to_sym
+    devName = ("l" + num.to_s)
+    peerAsn = Hash.new
+    config.vm.define nodeName do |node|
+      node.vm.host_name = devName
+      1.upto(properties[:numSpines]) do |spine|
+        spinename = ("s" + spine.to_s)
+        ifname = ("swp" + spine.to_s)
+        node.vm.network "private_network",
+                        virtualbox__intnet: spinename + "-" + devName
+        peerAsn[ifname] = properties[:spineAsn]
+      end
+
+      node.vm.provision "ansible" do |ansible|
+        ansible.extra_vars = {
+          loopback_ip: properties[:ipAddrPrefix] + iter.to_s,
+          asn: properties[:leafAsnBase] + num,
+          peer_asn: peerAsn
+        }
+        ansible.playbook = "clbgp.yml"
+      end
+      iter += 1
+    end
+  end
+end
