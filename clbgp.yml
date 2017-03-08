@@ -1,0 +1,62 @@
+---
+- name:  Configure BGP Unnumbered
+  hosts: all
+  tasks:
+
+    # Needed to allow the hostname change to be reflected by lldpd
+    #- name: Restart lldpd
+    #service: name=lldpd state=restarted sleep=5
+
+    # The only address we need
+  - name: Assign IP address to loopback
+    command: ip addr add {{ loopback_ip }} dev lo
+    when: hostvars[inventory_hostname]['ansible_lo']['ipv4_secondaries'] is not defined
+    become: yes
+
+  - name: Enable bgpd and zebra
+    replace: dest=/etc/quagga/daemons regexp='(bgpd|zebra)=no' replace='\1=yes' backup=yes
+    become: yes
+
+  - name: Write our ASN into bgpd.conf
+    shell: sh -c 'echo router bgp {{ asn }} > /etc/quagga/bgpd.conf'
+    become: yes
+
+  - name: Restart quagga
+    service: name=quagga state=restarted
+    become: yes
+
+  - name: Assign router-id
+    command: cl-bgp router-id set {{ loopback_ip }}
+    become: yes
+
+  - name: Enable IPv6 RA on all active interfaces
+    command: "{{ item[0] | replace('%iface%', item[1]) }}"
+    become: yes
+    with_nested:
+      - [ 'cl-rctl interface clear %iface% ipv6 nd suppress-ra',
+          'cl-rctl interface set %iface% ipv6 nd ra-interval 5'
+        ]
+      - '{{ansible_interfaces}}'
+    when: item[1] != "lo" and item[1] != "eth0" and ansible_{{ item[1] }}["active"]
+
+  - name: Start BGP session on all active interfaces
+    command: "{{ item[0] | replace('%iface%', item[1]) | replace('%asn%', peer_asn[item[1]]) }}"
+    become: yes
+    with_nested:
+      - [ 'cl-bgp interface add %iface% ',
+          'cl-bgp neighbor add %iface% remote-as %asn%',
+          'cl-bgp capability set extended-nexthop neighbor %iface% ',
+          'cl-bgp advertisement-interval set 0 neighbor %iface% ',
+          'cl-bgp timers set connect 10 neighbor %iface% ',
+          'cl-bgp maximum-paths set 16'
+        ]
+      - '{{ansible_interfaces}}'
+    when: item[1] != "lo" and item[1] != "eth0" and ansible_{{ item[1] }}["active"]
+
+  - name: Announce loopback IP address
+    command: "cl-bgp network add {{ loopback_ip }}/32"
+    become: yes
+
+  - name: Save to quagga config files
+    command: "vtysh -c \"write mem\""
+    become: yes
