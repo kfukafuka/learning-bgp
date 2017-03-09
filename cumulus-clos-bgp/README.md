@@ -2,7 +2,7 @@
 ## 下準備
 ### Requirements
 * Cumulus VX requires Vagrant 1.7 - 1.9.1
-** 2017/03/08時点の最新は1.9.2
+* 2017/03/08時点の最新は1.9.2
 * Understand these VirtualBox considerations
 
 ### Install Vagrant
@@ -47,6 +47,42 @@ cumulus-linux-3.2.1 (virtualbox, 0)
 $ sudo mv /opt/vagrant/embedded/bin/curl /opt/vagrant/embedded/bin/curl.bk
 ```
 
-### 参考URL
+## Vagrant Command
+### VM 起動
+```bash
+$ vagrant up
+```
+
+### VM 終了
+```bash
+$ vagrant halt 
+```
+### VM Provision
+* 構成の変更したときなどに実行
+```bash
+$ vagrant provision  
+```
+
+## Cumulus Commnads
+
+
+##その他
+* 構成変更したいときは下記を変更
+```bash
+:numSpines: 4
+:numLeaves: 6
+```
+* memoryの変更
+```bash
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = 512
+  end
+```
+:exclamation:256だとdmesgにOutOfMemoryの出力あり
+
+## 参考URL
 * https://docs.cumulusnetworks.com/display/VX/Using+Cumulus+VX+with+Vagrant
 * https://github.com/CumulusNetworks/cumulus-vx-vagrant/tree/master/vagrant/demos/clos-bgp
+* https://support.cumulusnetworks.com/hc/en-us/articles/205384457-Cumulus-Linux-Command-Reference-Guide
+* https://docs.cumulusnetworks.com/display/DOCS/Bidirectional+Forwarding+Detection+-+BFD
+* https://docs.cumulusnetworks.com/display/DOCS/Border+Gateway+Protocol+-+BGP#BorderGatewayProtocol-BGP-RouteReflectors
