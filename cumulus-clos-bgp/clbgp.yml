@@ -26,7 +26,7 @@
     become: yes
 
   - name: Assign router-id
-    command: cl-bgp router-id set {{ loopback_ip }}
+    command: cl-bgp as {{ asn }} router-id set {{ loopback_ip }}
     become: yes
 
   - name: Enable IPv6 RA on all active interfaces
