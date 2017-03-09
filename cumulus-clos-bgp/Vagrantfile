@@ -13,6 +13,10 @@ Vagrant.configure("2") do |config|
 
   config.vm.box = "cumulus-linux-3.2.1"
 
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = 512
+  end
+
   # Number of nodes to provision
   iter = 1
   
